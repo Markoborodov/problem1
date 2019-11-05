@@ -14,6 +14,59 @@ public:
         data = new T[n];
     }
 
+    /* Для класса необходимо определить конструктор копирования и operator=, так как
+     * генерируемые компилятором конструктор и operator= просто копируют указатель data. В
+     * итоге может получиться два объекта с одинаковыми указателями data и при удалении
+     * одного из них в деструкторе освободится память по этому указателю, и во втором
+     * объекте указатель станет недействительным.
+     * Нужно выделить новую область в памяти и скопировать туда содержимое из старой
+     * области памяти. */
+    Array(const Array<T>& a) {
+        size = a.size;
+        data = new T[size];
+        for (size_t i = 0; i != size; ++i) {
+            data[i] = a.data[i];
+        }
+    }
+
+    Array& operator=(const Array<T>& a) {
+        if (&a == this)
+            return *this;
+
+        delete[] data;
+        size = a.size;
+        data = new T[size];
+        for (size_t i = 0; i != size; ++i) {
+            data[i] = a.data[i];
+        }
+        return *this;
+    }
+
+    /* Также для оптимизации можно дополнить класс конструктором перемещения и
+     * перемещающим operator=. Это не обязательно для того, чтобы код в main() работал. */
+
+    Array(Array<T>&& a) {
+        size = a.size;
+        data = a.data;
+
+        a.size = 0;
+        a.data = nullptr;
+    }
+
+    Array& operator=(Array<T>&& a) {
+        if (&a == this)
+            return *this;
+
+        delete[] data;
+        size = a.size;
+        data = a.data;
+
+        a.size = 0;
+        a.data = nullptr;
+
+        return *this;
+    }
+
     T& operator[](size_t i) {
         return data[i];
     }
