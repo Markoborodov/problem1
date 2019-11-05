@@ -26,7 +26,9 @@ int main() {
     assert(node->getRight()->getParent() == node);
 
     auto leaf = TNode<int>::createLeaf(4);
-    auto node3 = TNode<int>::fork(0, node.get(), leaf.get());
+    /* Из-за изменения аргументов метода, теперь не нужно вызывать метод get(). Можно
+     * сразу передавать shared_ptr. */
+    auto node3 = TNode<int>::fork(0, node, leaf);
 
     assert(node3->getValue() == 0);
     assert(node3->getLeft()->getValue() == 1);

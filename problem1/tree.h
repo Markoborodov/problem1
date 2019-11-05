@@ -53,11 +53,23 @@ namespace bintree {
         }
 
         static TNodePtr createLeaf(T v) {
-            return std::make_shared<TNode>(v);
+            /* У make_shared() нет доступа к приватному конструктору класса, поэтому
+             * создаем shared_ptr конструктором, передав в него указатель, созданный
+             * оператором new. */
+            auto tmp_ptr = new TNode(v);
+            return TNodePtr(tmp_ptr);
         }
 
-        static TNodePtr fork(T v, TNode* left, TNode* right) {
-            TNodePtr ptr = std::make_shared<TNode>(v, left, right);
+        /* Изменим аргументы метода: вместо обычных указателей будем использовать
+         * shared_ptr. Это поможет избежать появление двух shared_ptr с одинаковыми
+         * указателями на память с объектом, но с разными блоками управления и
+         * следовательно разными счетчиками использования. */
+        static TNodePtr fork(T v, TNodePtr left, TNodePtr right) {
+            /* У make_shared() нет доступа к приватному конструктору класса, поэтому
+             * создаем shared_ptr конструктором, передав в него указатель, созданный
+             * оператором new. */
+            auto tmp_ptr = new TNode(v, left, right);
+            TNodePtr ptr(tmp_ptr);
             setParent(ptr->getLeft(), ptr);
             setParent(ptr->getRight(), ptr);
             return ptr;
@@ -102,7 +114,8 @@ namespace bintree {
             : value(v)
         {
         }
-        TNode(T v, TNode* left, TNode* right)
+        /* Аналогично методу fork() изменим параметры на shared_ptr. */
+        TNode(T v, TNodePtr left, TNodePtr right)
             : value(v)
             , left(left)
             , right(right)
