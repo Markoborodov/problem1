@@ -4,9 +4,12 @@
 
 namespace bintree {
     template <typename T>
-    struct TNode {
+    /* Используем базовый класс для корректного раздельного владения объектом по this.
+     */
+    struct TNode: std::enable_shared_from_this<TNode<T>> {
         using TNodePtr = std::shared_ptr<TNode<T>>;
         using TNodeConstPtr = std::shared_ptr<const TNode<T>>;
+        using TNodeWeakPtr = std::weak_ptr<TNode<T>>;
 
         bool hasLeft() const {
             return bool(left);
@@ -17,7 +20,7 @@ namespace bintree {
         }
 
         bool hasParent() const {
-            return bool(parent);
+            return bool(parent.use_count());
         }
 
         T& getValue() {
@@ -45,11 +48,17 @@ namespace bintree {
         }
 
         TNodePtr getParent() {
-            return parent;
+            if (parent.use_count() == 0)
+                return nullptr;
+            else
+                return parent.lock();
         }
 
         TNodeConstPtr getParent() const {
-            return parent;
+            if (parent.use_count() == 0)
+                return nullptr;
+            else
+                return parent.lock();
         }
 
         static TNodePtr createLeaf(T v) {
@@ -79,14 +88,20 @@ namespace bintree {
         }
 
         TNodePtr replaceLeft(TNodePtr l) {
-            setParent(l, TNodePtr(this));
+            /* Используем shared_from_this() для корректного конструирования shared_ptr
+             * из this, то есть решаем проблему, когда создается несколько shared_ptr из
+             * this, имеющих разные управляющие блоки).
+             */
+            setParent(l, this->shared_from_this());
             setParent(left, nullptr);
             std::swap(l, left);
             return l;
         }
 
         TNodePtr replaceRight(TNodePtr r) {
-            setParent(r, TNodePtr(this));
+            /* Аналогично методу выше.
+             */
+            setParent(r, this->shared_from_this());
             setParent(right, nullptr);
             std::swap(r, right);
             return r;
@@ -111,13 +126,18 @@ namespace bintree {
         T value;
         TNodePtr left = nullptr;
         TNodePtr right = nullptr;
-        TNodePtr parent = nullptr;
+        /* Для предотвращения проблемы с перекрестными shared_ptr (объекты содержат
+         * указатели друг на друга) используем weak_ptr для поля parent. Это привело к
+         * некоторым изменениям в методах hasParent() и getParent().
+         */
+        TNodeWeakPtr parent;
 
         TNode(T v)
             : value(v)
         {
         }
-        /* Аналогично методу fork() изменим параметры на shared_ptr. */
+        /* Аналогично методу fork() изменим параметры на shared_ptr.
+         */
         TNode(T v, TNodePtr left, TNodePtr right)
             : value(v)
             , left(left)
